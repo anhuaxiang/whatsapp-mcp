@@ -9,6 +9,7 @@ import logging
 VERSION = "v22.0"
 PHONE_NUMBER_ID = os.environ["PHONE_NUMBER_ID"]
 ACCESS_TOKEN = os.environ["ACCESS_TOKEN"]
+BUSINESS_ACCOUNT_ID = os.environ['BUSINESS_ACCOUNT_ID']
 
 headers = {
     "Authorization": f"Bearer {ACCESS_TOKEN}",
@@ -18,7 +19,7 @@ mcp = FastMCP("whatsapp-mcp")
 
 
 # lark机器人发送单聊消息
-@mcp.tool(description="send whatsapp text message")
+@mcp.tool(description="Send a plain text message to a WhatsApp user via the WhatsApp Business Cloud API.")
 async def send_text_message(
         to: Annotated[str, Field(description="Recipient's WhatsApp number in international format")],
         text: Annotated[str, Field(description="Text message content")],
@@ -35,7 +36,25 @@ async def send_text_message(
     return response.json()
 
 
-@mcp.tool(description="send whatsapp template message")
+@mcp.tool(description="List all approved or pending WhatsApp message templates under the connected Business Account (WABA).")
+async def list_template(
+    limit: Annotated[int, Field(description="Number of templates to retrieve")] = 20,
+    after: Annotated[Optional[str], Field(description="Cursor for pagination")] = None,
+) -> dict:
+    url = f"https://graph.facebook.com/{VERSION}/{BUSINESS_ACCOUNT_ID}/message_templates"
+    params = {"limit": limit}
+    if after:
+        params["after"] = after
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, params=params, headers=headers)
+    return response.json()
+
+
+
+
+
+@mcp.tool(description="Send a pre-approved WhatsApp message template with optional parameters and language code.")
 async def send_template_message(
         to: Annotated[str, Field(description="Recipient's WhatsApp number in international format")],
         template_name: Annotated[str, Field(description="Template name")],
